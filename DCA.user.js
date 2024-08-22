@@ -39,7 +39,7 @@
         "feedback-7": "B通道：□",
         "feedback-8": "B通道：☆",
         "feedback-9": "B通道：⬡",
-    }
+    };
 
     // 创建 Tips 窗口
     const createWindow = (msg, btnText = '', windowClass = 'coyoteWindow') => {
@@ -84,8 +84,6 @@
                 return;
             }
 
-            //createWindow(event.data, 'OK!');
-
             switch (msg.type) {
                 case 'bind':
                     if (!msg.targetId) {
@@ -110,15 +108,17 @@
                     }
                     break;
                 case 'break':
-                    if (msg.targetId != targetWSId);
+                    if (msg.targetId != targetWSId) {
                         return;
+                    }
                     console.log("收到断开连接指令");
                     document.getElementsByClassName('lightingDiv')[0].classList.remove('onopen');
                     coyoteState = false;
                     break;
                 case 'error':
-                    if (msg.targetId != targetWSId);
+                    if (msg.targetId != targetWSId) {
                         return;
+                    }
                     console.log("对方已断开，code：" + msg.message);
                     document.getElementsByClassName('lightingDiv')[0].classList.remove('onopen');
                     coyoteState = false;
@@ -165,10 +165,10 @@
 
     // 增减操作
     const addOrReduce = (type, channelIndex, strength) => {
-        // 1 减少  2 增加  3 设置到
-        // channel:1-A    2-B
+        // type:	1-减少	2-增加	3-设置到
+        // channel:	1-A		2-B
+		
         // 获取当前通道的当前值
-        // let channelStrength = channelIndex === 1 ? channelAStrength.value : channelBStrength.value;
         let channelStrength = strength;
 
         // 如果是设置操作
@@ -198,7 +198,6 @@
 
     // 发送消息
     const sendWsMsg = (messageObj) => {
-        //createWindow(messageObj, 'aaa');
         messageObj.clientId = connectionId;
         messageObj.targetId = targetWSId;
         if (!messageObj.hasOwnProperty('type')) {
@@ -233,14 +232,11 @@
                 mutation.addedNodes.forEach(node => {
                     // 答错
                     if (node.nodeType === Node.ELEMENT_NODE && node.innerHTML.indexOf("blame-incorrect") != -1) {
-                        // alert('你答错了！开电！');
-                        // createWindow('你答错了！开电！', '继续努力');
                         addOrReduce(2, 1, addStrength);
                         sendWaveData(sendTime, wave);
                     }
                     // 完成单元
                     if (node.nodeType === Node.ELEMENT_NODE && node.innerHTML.indexOf('session-complete-slide') != -1) {
-                        // alert('你答错了！开电！');
                         createWindow('完成一单元！奖励强度 -' + reduceStrength + '！', '继续努力');
                         addOrReduce(1, 1, reduceStrength);
                     }
@@ -255,7 +251,7 @@
         subtree: true
     });
 
-    // GM菜单 createSocket
+    // GM 菜单 createSocket
     const createSocket = () => {
         if(coyoteState == false) {
             createCoyoteSocket();
@@ -264,7 +260,7 @@
         }
     }
 
-    // GM菜单 openSettings
+    // GM 菜单 openSettings
     const openSettings = () => {
         if(coyoteState == false) {
             createWindow('请先建立 WebSocket 连接！', 'OK');
@@ -309,7 +305,7 @@
         document.body.appendChild(newWindow);
     }
 
-    // 初始化
+    // 初始化函数
     const init = () => {
         wave = GM_getValue("coyoteWave") == undefined ? '[]' : GM_getValue("coyoteWave");
         sendTime = GM_getValue("coyoteTime") == undefined ? '5' : GM_getValue("coyoteTime");
