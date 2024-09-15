@@ -32,7 +32,7 @@
 
     // 创建 Tips 窗口
     const createWindow = (msg, btnText = '', windowClass = 'coyoteWindow') => {
-        var tipHTML = `
+        let tipHTML = `
     <div class="coyoteWindowBg"></div>
     <div class="coyoteWindow">
         <div class="coyoteWindowBox">
@@ -49,7 +49,7 @@
         </div>
     </div>
 `;
-        var newWindow = document.createElement('div');
+        let newWindow = document.createElement('div');
         newWindow.setAttribute('id', windowClass);
         newWindow.setAttribute('style', 'width: 100%; top: 0; position: fixed; z-index: 999;');
         newWindow.innerHTML = tipHTML;
@@ -219,7 +219,7 @@
 
     // 设置浮窗
     const createSettingsWindow = () => {
-        var settingsHTML = `
+        let settingsHTML = `
     <div class="coyoteWindowBg"></div>
     <div class="coyoteWindow">
         <div class="coyoteWindowBox">
@@ -242,7 +242,7 @@
         </div>
     </div>
 `;
-        var newWindow = document.createElement('div');
+        let newWindow = document.createElement('div');
         newWindow.setAttribute('id', 'settingsWindow');
         newWindow.setAttribute('style', 'width: 100%; top: 0; position: fixed; z-index: 999; display: none;');
         newWindow.innerHTML = settingsHTML;
@@ -256,10 +256,10 @@
         addStrength = GM_getValue("coyoteAddStrength") == undefined ? '2' : GM_getValue("coyoteAddStrength");
         reduceStrength = GM_getValue("coyoteReduceStrength") == undefined ? '2' : GM_getValue("coyoteReduceStrength");
 
-        var lightingDiv = document.createElement('div');
+        let lightingDiv = document.createElement('div');
         lightingDiv.setAttribute('class', 'lightingDiv hidden');
         lightingDiv.innerHTML = `<div class="lightingNum"><span class="iconAndText"><img height="28px" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTMyLjA4MiAxMC4yODc2QzMxLjc5MDQgNy40MTk3MyAyOC4xMDgzIDYuNDMzMTMgMjYuNDIxOCA4Ljc3MDkyTDEyLjU0MTIgMjguMDEyMUMxMS4yNTc1IDI5Ljc5MTYgMTIuMTUyNCAzMi4zMDU1IDE0LjI3MTkgMzIuODczNEwyMi4xNjgyIDM0Ljk4OTJMMjMuMzM0NiA0Ni40NTkxQzIzLjYyNjIgNDkuMzI3IDI3LjMwODMgNTAuMzEzNSAyOC45OTQ4IDQ3Ljk3NThMNDIuODc1NCAyOC43MzQ2QzQ0LjE1OTIgMjYuOTU1MSA0My4yNjQyIDI0LjQ0MTIgNDEuMTQ0NyAyMy44NzMzTDMzLjI0ODUgMjEuNzU3NUwzMi4wODIgMTAuMjg3NloiIGZpbGw9IiNDRTgyRkYiLz48cGF0aCBkPSJNMTUuMjY0NyAzMC41NTc4QzE0LjU0NjYgMzAuMzYzOSAxNC40NzczIDI5LjM3MjQgMTUuMTYxNCAyOS4wODA1TDIwLjY0OTMgMjYuNzM5QzIxLjE0NDggMjYuNTI3NiAyMS43MDA5IDI2Ljg2NzcgMjEuNzM4NSAyNy40MDUxTDIyLjAxMSAzMS4zMDE2QzIyLjA0ODUgMzEuODM5IDIxLjU0NTIgMzIuMjUzMSAyMS4wMjUxIDMyLjExMjdMMTUuMjY0NyAzMC41NTc4WiIgZmlsbD0iIzkwNjlDRCIvPjxwYXRoIGQ9Ik00MC40MTU3IDI1LjgwNTZDNDEuMTMzOCAyNS45OTk1IDQxLjIwMzEgMjYuOTkxIDQwLjUxOSAyNy4yODI5TDM1LjAzMTEgMjkuNjI0NEMzNC41MzU2IDI5LjgzNTggMzMuOTc5NSAyOS40OTU3IDMzLjk0MTkgMjguOTU4M0wzMy42Njk1IDI1LjA2MThDMzMuNjMxOSAyNC41MjQ0IDM0LjEzNTMgMjQuMTEwMyAzNC42NTU0IDI0LjI1MDdMNDAuNDE1NyAyNS44MDU2WiIgZmlsbD0iI0Q4OUJGRiIvPjwvc3ZnPg=="><span style="color: rgb(var(--color-beetle)); font-weight: bold;"><span id="nowStrength">0</span>/<span id="maxStrength">0</span></span></span></div></div>`;
-        var coyoteCSS = document.createElement('style');
+        let coyoteCSS = document.createElement('style');
         coyoteCSS.innerHTML = `
 .lightingDiv {
     position: fixed;
