@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         多邻国学习助手【3.0蓝牙版】
 // @namespace    https://fang.blog.miri.site/
-// @version      0.0.1
+// @version      1.0
 // @description  阿巴阿巴
 // @author       Mr_Fang
 // @match        https://www.duolingo.com/*
@@ -20,7 +20,7 @@
     let errorCount = 0; // 错误计数
     let intervalId; // 定时器ID
     let strength = 0; // 强度
-    let softStrength = 0; // 软上限
+    let softStrength = 200; // 软上限
     let addStrength = 2; // 每次答错增加强度
     let reduceStrength = 2; // 每完成单元减小强度
     let sendTime = 5; // 输出时长
@@ -86,6 +86,7 @@
             console.log('services', services)
             document.getElementById('scanBluetoothWindow').remove();
             createWindow('蓝牙设备连接成功', 'OK', 'scanBluetoothWindow');
+            document.getElementsByClassName('lightingDiv')[0].classList.add('onopen');
         }).catch(error => {
             document.getElementById('scanBluetoothWindow').remove();
             switch (error.code) {
@@ -101,11 +102,12 @@
     const onDisconnected = (event) => {
         const device = event.target;
         createWindow(`设备 ${device.name} 已断开连接`, 'OK');
+        document.getElementsByClassName('lightingDiv')[0].classList.remove('onopen');
         console.log(`设备 ${device.name} 已断开连接`);
         GATTServer = null;
     }
 
-    const disconnect = () => {
+    const disconnectBluetooth = () => {
         if (GATTServer) {
             GATTServer.disconnect(); // 断开连接
             GATTServer = null; // 将全局变量置空
@@ -117,6 +119,15 @@
     const convertToArray = (text) => {
         const cleanedText = text.replace(/\s+/g, '');
         return cleanedText.match(/[0-9A-F]+/g);
+    }
+
+    // 将数字转为十六进制字符串
+    const toHexString = (num) => {
+        let hex = num.toString(16);
+        if (hex.length % 2) {
+            hex = '0' + hex;
+        }
+        return hex.toUpperCase();
     }
 
     // 将十六进制字符串转为 Uint8Array
@@ -139,7 +150,7 @@
             createWindow('请先连接蓝牙设备', 'OK');
             return;
         }
-        intervalId = setInterval(sendBluetooth, 100);
+        intervalId = setInterval(() => sendBluetooth('sendWave', wave), 100);
         // 定时停止发送波形
         setTimeout(stopSending, sendTime * 1000);
     }
@@ -154,7 +165,7 @@
     }
 
     // 蓝牙发送
-    const sendBluetooth = () => {
+    const sendBluetooth = (type, msg) => {
         if (errorCount > 5) {
             stopSending();
             return;
@@ -165,11 +176,35 @@
             return;
         }
 
-        let waveArray = convertToArray(wave);
+        let strengthType = '0';
+        let strengthValue = '00';
+        let waveArray = ['0000000000000000', '0000000000000000'];
+
+
+        if (type === 'addStrength') {
+            // 强度操作方式变量
+            strengthType = '5';
+            strength = strength + parseInt(msg);
+            strengthValue = toHexString(parseInt(msg));
+        } else if (type === 'reduceStrength') {
+            strengthType = 'A';
+            strength = strength - parseInt(msg);
+            strengthValue = toHexString(parseInt(msg));
+        } else if (type === 'setStrength') {
+            strengthType = 'F';
+            strength = parseInt(msg);
+            strengthValue = toHexString(parseInt(msg));
+        } else if (type === 'sendWave') {
+            waveArray = convertToArray(msg);
+        }
+
+
         let currentIndex = sendCount % waveArray.length;
         let serviceId = serviceUUID;
-        let value = 'B0000000' + waveArray[currentIndex] + waveArray[currentIndex]
+        let value = 'B00' + strengthType + strengthValue + strengthValue + waveArray[currentIndex] + waveArray[currentIndex]
         let characteristicId = '0000150a-0000-1000-8000-00805f9b34fb' // 3.0设备蓝牙特性的波形写入 UUID (AB通道相同)
+
+        console.log(value);
 
         GATTServer.getPrimaryService(serviceId).then(service => {
             return service.getCharacteristic(characteristicId);
@@ -177,6 +212,7 @@
             characteristicA.writeValue(hexStringToUint8Array(value));
         }).then(() => {
             sendCount++;
+            document.getElementById('nowStrength').textContent = strength;
         }).catch(error => {
             errorCount++;
             console.log('波形写入异常：' + error)
@@ -191,7 +227,13 @@
                 mutation.addedNodes.forEach(node => {
                     // 答错
                     if (node.nodeType === Node.ELEMENT_NODE && node.innerHTML.indexOf("blame-incorrect") != -1) {
+                        sendBluetooth('addStrength', addStrength);
                         startSending();
+                    }
+                    // 完成单元
+                    if (node.nodeType === Node.ELEMENT_NODE && node.innerHTML.indexOf('session-complete-slide') != -1) {
+                        createWindow('完成一单元！奖励强度 -' + reduceStrength + '！', '继续努力');
+                        sendBluetooth('reduceStrength', reduceStrength);
                     }
                 });
             }
@@ -225,16 +267,16 @@
         <div class="coyoteWindowBox">
             <div class="coyoteWindowContent">
                 <h2>设置</h2>
-                <label class="settingsLabel hidden" for="strengthInput">强度设定</label>
-                <div class="_coyoteBtn_3nbuA hidden"><input id="strengthInput" class="_coyoteBtn_3DZXI" type="number" value="0"></div>
+                <label class="settingsLabel" for="strengthInput">强度设定</label>
+                <div class="_coyoteBtn_3nbuA"><input id="strengthInput" class="_coyoteBtn_3DZXI" type="number" value="0"></div>
                 <label class="settingsLabel" for="waveInput">波形设定 <a onclick="window.open('https://blive-coyote.babyfang.cn/waveHelper.html', '', 'width=500,height=1000,left=0');" style="color: rgb(var(--color-fox))">波形助手</a></label>
                 <div class="_coyoteBtn_3nbuA"><input id="waveInput" class="_coyoteBtn_3DZXI" type="text" value="[]"></div>
                 <label class="settingsLabel" for="timeInput">输出时长 (s)</label>
                 <div class="_coyoteBtn_3nbuA"><input id="timeInput" class="_coyoteBtn_3DZXI" type="number" value="5"></div>
-                <label class="settingsLabel hidden" for="addStrengthInput">每次错误增加强度</label>
-                <div class="_coyoteBtn_3nbuA hidden"><input id="addStrengthInput" class="_coyoteBtn_3DZXI" type="number" value="2"></div>
-                <label class="settingsLabel hidden" for="reduceStrengthInput">完成单元减小强度</label>
-                <div class="_coyoteBtn_3nbuA hidden"><input id="reduceStrengthInput" class="_coyoteBtn_3DZXI" type="number" value="2"></div>
+                <label class="settingsLabel" for="addStrengthInput">每次错误增加强度</label>
+                <div class="_coyoteBtn_3nbuA"><input id="addStrengthInput" class="_coyoteBtn_3DZXI" type="number" value="2"></div>
+                <label class="settingsLabel" for="reduceStrengthInput">完成单元减小强度</label>
+                <div class="_coyoteBtn_3nbuA"><input id="reduceStrengthInput" class="_coyoteBtn_3DZXI" type="number" value="2"></div>
                 <button class="_coyoteBtn_1M9iF _coyoteBtn_36g4N _coyoteBtn_2YF0P _coyoteBtn_1V1Gt _coyoteBtn_vSCTx" onclick="document.getElementById('settingsWindow').style.display = 'none'">
                     <span class="_1o-YO">关闭</span>
                 </button>
@@ -257,8 +299,8 @@
         reduceStrength = GM_getValue("coyoteReduceStrength") == undefined ? '2' : GM_getValue("coyoteReduceStrength");
 
         let lightingDiv = document.createElement('div');
-        lightingDiv.setAttribute('class', 'lightingDiv hidden');
-        lightingDiv.innerHTML = `<div class="lightingNum"><span class="iconAndText"><img height="28px" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTMyLjA4MiAxMC4yODc2QzMxLjc5MDQgNy40MTk3MyAyOC4xMDgzIDYuNDMzMTMgMjYuNDIxOCA4Ljc3MDkyTDEyLjU0MTIgMjguMDEyMUMxMS4yNTc1IDI5Ljc5MTYgMTIuMTUyNCAzMi4zMDU1IDE0LjI3MTkgMzIuODczNEwyMi4xNjgyIDM0Ljk4OTJMMjMuMzM0NiA0Ni40NTkxQzIzLjYyNjIgNDkuMzI3IDI3LjMwODMgNTAuMzEzNSAyOC45OTQ4IDQ3Ljk3NThMNDIuODc1NCAyOC43MzQ2QzQ0LjE1OTIgMjYuOTU1MSA0My4yNjQyIDI0LjQ0MTIgNDEuMTQ0NyAyMy44NzMzTDMzLjI0ODUgMjEuNzU3NUwzMi4wODIgMTAuMjg3NloiIGZpbGw9IiNDRTgyRkYiLz48cGF0aCBkPSJNMTUuMjY0NyAzMC41NTc4QzE0LjU0NjYgMzAuMzYzOSAxNC40NzczIDI5LjM3MjQgMTUuMTYxNCAyOS4wODA1TDIwLjY0OTMgMjYuNzM5QzIxLjE0NDggMjYuNTI3NiAyMS43MDA5IDI2Ljg2NzcgMjEuNzM4NSAyNy40MDUxTDIyLjAxMSAzMS4zMDE2QzIyLjA0ODUgMzEuODM5IDIxLjU0NTIgMzIuMjUzMSAyMS4wMjUxIDMyLjExMjdMMTUuMjY0NyAzMC41NTc4WiIgZmlsbD0iIzkwNjlDRCIvPjxwYXRoIGQ9Ik00MC40MTU3IDI1LjgwNTZDNDEuMTMzOCAyNS45OTk1IDQxLjIwMzEgMjYuOTkxIDQwLjUxOSAyNy4yODI5TDM1LjAzMTEgMjkuNjI0NEMzNC41MzU2IDI5LjgzNTggMzMuOTc5NSAyOS40OTU3IDMzLjk0MTkgMjguOTU4M0wzMy42Njk1IDI1LjA2MThDMzMuNjMxOSAyNC41MjQ0IDM0LjEzNTMgMjQuMTEwMyAzNC42NTU0IDI0LjI1MDdMNDAuNDE1NyAyNS44MDU2WiIgZmlsbD0iI0Q4OUJGRiIvPjwvc3ZnPg=="><span style="color: rgb(var(--color-beetle)); font-weight: bold;"><span id="nowStrength">0</span>/<span id="maxStrength">0</span></span></span></div></div>`;
+        lightingDiv.setAttribute('class', 'lightingDiv');
+        lightingDiv.innerHTML = `<div class="lightingNum"><span class="iconAndText"><img height="28px" src="data:image/svg+xml;charset=utf-8;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cGF0aCBmaWxsLXJ1bGU9ImV2ZW5vZGQiIGNsaXAtcnVsZT0iZXZlbm9kZCIgZD0iTTMyLjA4MiAxMC4yODc2QzMxLjc5MDQgNy40MTk3MyAyOC4xMDgzIDYuNDMzMTMgMjYuNDIxOCA4Ljc3MDkyTDEyLjU0MTIgMjguMDEyMUMxMS4yNTc1IDI5Ljc5MTYgMTIuMTUyNCAzMi4zMDU1IDE0LjI3MTkgMzIuODczNEwyMi4xNjgyIDM0Ljk4OTJMMjMuMzM0NiA0Ni40NTkxQzIzLjYyNjIgNDkuMzI3IDI3LjMwODMgNTAuMzEzNSAyOC45OTQ4IDQ3Ljk3NThMNDIuODc1NCAyOC43MzQ2QzQ0LjE1OTIgMjYuOTU1MSA0My4yNjQyIDI0LjQ0MTIgNDEuMTQ0NyAyMy44NzMzTDMzLjI0ODUgMjEuNzU3NUwzMi4wODIgMTAuMjg3NloiIGZpbGw9IiNDRTgyRkYiLz48cGF0aCBkPSJNMTUuMjY0NyAzMC41NTc4QzE0LjU0NjYgMzAuMzYzOSAxNC40NzczIDI5LjM3MjQgMTUuMTYxNCAyOS4wODA1TDIwLjY0OTMgMjYuNzM5QzIxLjE0NDggMjYuNTI3NiAyMS43MDA5IDI2Ljg2NzcgMjEuNzM4NSAyNy40MDUxTDIyLjAxMSAzMS4zMDE2QzIyLjA0ODUgMzEuODM5IDIxLjU0NTIgMzIuMjUzMSAyMS4wMjUxIDMyLjExMjdMMTUuMjY0NyAzMC41NTc4WiIgZmlsbD0iIzkwNjlDRCIvPjxwYXRoIGQ9Ik00MC40MTU3IDI1LjgwNTZDNDEuMTMzOCAyNS45OTk1IDQxLjIwMzEgMjYuOTkxIDQwLjUxOSAyNy4yODI5TDM1LjAzMTEgMjkuNjI0NEMzNC41MzU2IDI5LjgzNTggMzMuOTc5NSAyOS40OTU3IDMzLjk0MTkgMjguOTU4M0wzMy42Njk1IDI1LjA2MThDMzMuNjMxOSAyNC41MjQ0IDM0LjEzNTMgMjQuMTEwMyAzNC42NTU0IDI0LjI1MDdMNDAuNDE1NyAyNS44MDU2WiIgZmlsbD0iI0Q4OUJGRiIvPjwvc3ZnPg=="><span style="color: rgb(var(--color-beetle)); font-weight: bold;"><span id="nowStrength">0</span>/<span id="maxStrength">200</span></span></span></div></div>`;
         let coyoteCSS = document.createElement('style');
         coyoteCSS.innerHTML = `
 .lightingDiv {
@@ -447,8 +489,8 @@ div#CoyoteQRCode > img {
         document.getElementById('reduceStrengthInput').value = reduceStrength;
 
         document.getElementById('strengthInput').addEventListener('input', function () {
-            strength = this.value;
-            addOrReduce(3, 1, strength);
+            strength = parseInt(this.value);
+            sendBluetooth('setStrength', strength);
             document.getElementById('nowStrength').textContent = strength;
         });
         document.getElementById('waveInput').addEventListener('input',function () {
@@ -472,6 +514,6 @@ div#CoyoteQRCode > img {
     init();
     GM_registerMenuCommand('连接蓝牙', scanBluetooth);
     GM_registerMenuCommand('打开设置', openSettings);
-    GM_registerMenuCommand('断开蓝牙', disconnect);
+    GM_registerMenuCommand('断开蓝牙', disconnectBluetooth);
     GM_registerMenuCommand('[测试]写入数据', startSending);
 })();
