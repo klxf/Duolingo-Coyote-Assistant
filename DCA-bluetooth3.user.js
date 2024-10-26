@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         多邻国学习助手【3.0蓝牙版】
 // @namespace    https://fang.blog.miri.site/
-// @version      1.0
+// @version      1.1.0
 // @description  阿巴阿巴
 // @author       Mr_Fang
 // @match        https://www.duolingo.com/*
@@ -24,6 +24,7 @@
     let addStrength = 2; // 每次答错增加强度
     let reduceStrength = 2; // 每完成单元减小强度
     let sendTime = 5; // 输出时长
+    let coyoteState = false; // 连接状态
 
     const prefix = '47' // 蓝牙前缀
     const serviceUUID = '0000180c-0000-1000-8000-00805f9b34fb'; // 服务UUID
@@ -86,6 +87,7 @@
             console.log('services', services)
             document.getElementById('scanBluetoothWindow').remove();
             createWindow('蓝牙设备连接成功', 'OK', 'scanBluetoothWindow');
+            coyoteState = true;
             document.getElementsByClassName('lightingDiv')[0].classList.add('onopen');
         }).catch(error => {
             document.getElementById('scanBluetoothWindow').remove();
@@ -102,6 +104,7 @@
     const onDisconnected = (event) => {
         const device = event.target;
         createWindow(`设备 ${device.name} 已断开连接`, 'OK');
+        coyoteState = false;
         document.getElementsByClassName('lightingDiv')[0].classList.remove('onopen');
         console.log(`设备 ${device.name} 已断开连接`);
         GATTServer = null;
@@ -225,6 +228,9 @@
         mutations.forEach(mutation => {
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(node => {
+                    if (coyoteState === false) {
+                        return;
+                    }
                     // 答错
                     if (node.nodeType === Node.ELEMENT_NODE && node.innerHTML.indexOf("blame-incorrect") != -1) {
                         sendBluetooth('addStrength', addStrength);
